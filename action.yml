@@ -1,0 +1,76 @@
+name: Nowlark Notify and Ask
+description: Push a notification to your phone or your team, or ask a person and wait for their one-tap answer.
+author: Skail Consulting LLC
+branding:
+  icon: bell
+  color: orange
+
+inputs:
+  api-key:
+    description: A Nowlark API key (nlk_...). Keep it in a repository secret.
+    required: true
+  title:
+    description: The notification's title, or the question when ask is set.
+    required: true
+  body:
+    description: Text under the title.
+    required: false
+    default: ''
+  source:
+    description: The sender name shown on the phone. Defaults to the repository name.
+    required: false
+    default: ''
+  url:
+    description: A link it opens. Defaults to this workflow run.
+    required: false
+    default: ''
+  priority:
+    description: -1 quiet, 0 normal, 1 high, 2 emergency (repeats until opened).
+    required: false
+    default: '0'
+  ask:
+    description: >-
+      Make it a question and wait for the answer: approve_deny, yes_no, approve_deny_later, yes_no_later,
+      or up to 3 answers of your own, comma-separated ("Ship it,Hold").
+    required: false
+    default: ''
+  wait:
+    description: Seconds to wait for the answer. The step fails when none comes.
+    required: false
+    default: '900'
+  pass-on:
+    description: >-
+      With ask, the answers that let the job go on, comma-separated (for example "Approve"). Any other
+      answer fails the step. Empty passes on every answer.
+    required: false
+    default: ''
+  base-url:
+    description: The Nowlark server.
+    required: false
+    default: https://nowlark.com
+
+outputs:
+  id:
+    description: The notification's id.
+    value: ${{ steps.nowlark.outputs.id }}
+  answer:
+    description: The answer, when ask was set.
+    value: ${{ steps.nowlark.outputs.answer }}
+
+runs:
+  using: composite
+  steps:
+    - id: nowlark
+      shell: bash
+      env:
+        NOWLARK_API_KEY: ${{ inputs.api-key }}
+        NL_TITLE: ${{ inputs.title }}
+        NL_BODY: ${{ inputs.body }}
+        NL_SOURCE: ${{ inputs.source || github.repository }}
+        NL_URL: ${{ inputs.url || format('{0}/{1}/actions/runs/{2}', github.server_url, github.repository, github.run_id) }}
+        NL_PRIORITY: ${{ inputs.priority }}
+        NL_ASK: ${{ inputs.ask }}
+        NL_WAIT: ${{ inputs.wait }}
+        NL_PASS_ON: ${{ inputs.pass-on }}
+        NL_BASE: ${{ inputs.base-url }}
+      run: python3 "$GITHUB_ACTION_PATH/nowlark_action.py"
